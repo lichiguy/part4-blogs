@@ -1,0 +1,32 @@
+{
+  "name": "part4-blogs",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/lichiguy/part4-blogs#readme",
+  "bugs": {
+    "url": "https://github.com/lichiguy/part4-blogs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lichiguy/part4-blogs.git"
+  },
+  "license": "ISC",
+  "author": "Emiliano Reyes",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.1",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
