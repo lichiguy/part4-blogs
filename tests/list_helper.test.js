@@ -113,6 +113,28 @@ describe("Favorite Blog", () => {
 
 describe("Most blogs Author", () => {
   test('With a list of blogs', () => {
-    console.log(listHelper.mostBlogs(blogs))
+    assert.deepStrictEqual(listHelper.mostBlogs(blogs), { author: 'Robert C. Martin', blogs: 3 })
+  })
+
+  test("Of empty list is zero", () => {
+    assert.strictEqual(listHelper.mostBlogs(emptyList), 0)
+  })
+
+  test("when list has only one blog, equals that blog", () => {
+    assert.deepStrictEqual(listHelper.mostBlogs(listWithOneBlog), { author: 'Edsger W. Dijkstra', blogs: 1})
+  })
+})
+
+describe("Most likes Author", () => {
+  test('With a list of blogs', () => {
+    assert.deepStrictEqual(listHelper.mostLikes(blogs), { author: 'Edsger W. Dijkstra', likes: 17 })
+  })
+
+  test("Of empty list is zero", () => {
+    assert.strictEqual(listHelper.mostLikes(emptyList), 0)
+  })
+
+  test("when list has only one blog, equals that blog", () => {
+    assert.deepStrictEqual(listHelper.mostLikes(listWithOneBlog), { author: 'Edsger W. Dijkstra', likes: 5})
   })
 })
