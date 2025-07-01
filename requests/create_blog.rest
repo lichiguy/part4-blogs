@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxpY2hpZ3V5IiwiaWQiOiI2ODYzNjY0NWM1ZTBmMjVmN2RlMmU3NjEiLCJpYXQiOjE3NTEzNDQ3NzB9.Ac2HvCidhUX_zQBPICZLvQuWkJRs4ulhQbV7qMn-Ebw
+
+{
+    "title": "Learn NextJS",
+    "author": "NextJS Org",
+    "url": "https://nextjs.org/learn?utm_source=next-site&utm_medium=homepage-cta&utm_campaign=home",
+    "likes": 12
+}
