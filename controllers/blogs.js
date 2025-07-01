@@ -23,7 +23,9 @@ blogsRouter.post("/", async (request, response) => {
   if (!decodedToken.id) {
     return response.status(401).json({ error: "invalid token" });
   }
+  console.log(request.user) //ya son iguales, hay que modificar la siguiente linea y sus similares
   const user = await User.findById(decodedToken.id);
+  console.log(user) //ya son iguales
 
   const blog = new Blog({
     title: body.title,
