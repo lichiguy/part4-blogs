@@ -11,6 +11,8 @@ const helper = require("./test_helper");
 const User = require("../models/user");
 const Blog = require("../models/blog");
 
+let loginResponse = "";
+
 describe("When there is initially some blogs", () => {
   beforeEach(async () => {
     await Blog.deleteMany({});
@@ -78,13 +80,53 @@ describe("Viewing a specific blog", () => {
 describe("Addition of a new blog", () => {
   beforeEach(async () => {
     await Blog.deleteMany({});
+    await User.deleteMany({});
 
-    const blogObjects = helper.initialBlogs.map((blog) => new Blog(blog));
-    const promiseArray = blogObjects.map((blog) => blog.save());
-    await Promise.all(promiseArray);
+    const passwordHash = await bcrypt.hash("testingPass", 10);
+    const user = new User({
+      username: "tesing",
+      name: "testingName",
+      passwordHash,
+    });
+
+    await user.save();
+
+    const login = await api
+      .post("/api/login")
+      .send({ username: "tesing", password: "testingPass" });
+
+    loginResponse = login.res.text;
   });
 
   test("succeeds with valid data", async () => {
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
+
+    const newBlog = {
+      title: "Canonical string reduction",
+      author: "Edsger W. Dijkstra",
+      url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
+      likes: 12,
+    };
+
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(newBlog)
+      .expect(201)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsAtEnd = await helper.blogsInDb();
+    assert.strictEqual(blogsAtEnd.length, 1);
+
+    const titles = blogsAtEnd.map((n) => n.title);
+    assert(titles.includes("Canonical string reduction"));
+  });
+
+  test("fails if token is not set", async () => {
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
+
     const newBlog = {
       title: "Canonical string reduction",
       author: "Edsger W. Dijkstra",
@@ -95,44 +137,58 @@ describe("Addition of a new blog", () => {
     await api
       .post("/api/blogs")
       .send(newBlog)
-      .expect(201)
+      .expect(401)
       .expect("Content-Type", /application\/json/);
 
     const blogsAtEnd = await helper.blogsInDb();
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1);
+    assert.strictEqual(blogsAtEnd.length, 0);
 
     const titles = blogsAtEnd.map((n) => n.title);
-    assert(titles.includes("Canonical string reduction"));
+    assert(!titles.includes("Canonical string reduction"));
   });
 
   test("blog without likes is added with 0 likes", async () => {
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
+
     const newBlog = {
       title: "Canonical string reduction",
       author: "Edsger W. Dijkstra",
       url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
     };
 
-    await api.post("/api/blogs").send(newBlog).expect(201);
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(newBlog)
+      .expect(201);
     const blogsAtEnd = await helper.blogsInDb();
 
     const titles = blogsAtEnd.map((blog) => blog.title);
     assert(titles.includes(newBlog.title));
 
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1);
+    assert.strictEqual(blogsAtEnd.length, 1);
     assert(blogsAtEnd[blogsAtEnd.length - 1].likes === 0);
   });
 
   test("blog without title or url is not added", async () => {
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
+
     const blogWithNoAuthor = {
       title: "Canonical string reduction",
       url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
       likes: 12,
     };
 
-    await api.post("/api/blogs").send(blogWithNoAuthor).expect(400);
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(blogWithNoAuthor)
+      .expect(400);
 
     const blogsAtEnd = await helper.blogsInDb();
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
+    assert.strictEqual(blogsAtEnd.length, 0);
 
     const blogWithNoUrl = {
       title: "Canonical string reduction",
@@ -140,33 +196,100 @@ describe("Addition of a new blog", () => {
       likes: 12,
     };
 
-    await api.post("/api/blogs").send(blogWithNoUrl).expect(400);
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(blogWithNoUrl)
+      .expect(400);
 
     const blogsAtEndT = await helper.blogsInDb();
-    assert.strictEqual(blogsAtEndT.length, helper.initialBlogs.length);
+    assert.strictEqual(blogsAtEndT.length, 0);
   });
 });
 
 describe("Deletion of a blog", () => {
   beforeEach(async () => {
     await Blog.deleteMany({});
+    await User.deleteMany({});
 
-    const blogObjects = helper.initialBlogs.map((blog) => new Blog(blog));
-    const promiseArray = blogObjects.map((blog) => blog.save());
-    await Promise.all(promiseArray);
+    const passwordHash = await bcrypt.hash("testingPass", 10);
+    const user = new User({
+      username: "tesing",
+      name: "testingName",
+      passwordHash,
+    });
+
+    await user.save();
+
+    const login = await api
+      .post("/api/login")
+      .send({ username: "tesing", password: "testingPass" });
+
+    loginResponse = login.res.text;
   });
 
   test("succeeds with status code 204 if id is valid", async () => {
-    const blogsAtStart = await helper.blogsInDb();
-    const blogToDelete = blogsAtStart[0];
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
 
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+    const newBlog = {
+      title: "Canonical string reduction",
+      author: "Edsger W. Dijkstra",
+      url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
+      likes: 12,
+    };
+
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(newBlog)
+      .expect(201)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsAfterAddition = await helper.blogsInDb();
+    assert.strictEqual(blogsAfterAddition.length, 1);
+
+    const blogToDelete = blogsAfterAddition[0];
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .expect(204);
     const blogsAtEnd = await helper.blogsInDb();
 
     const titles = blogsAtEnd.map((r) => r.title);
     assert(!titles.includes(blogToDelete.title));
 
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1);
+    assert.strictEqual(blogsAtEnd.length, 0);
+  });
+
+  test("fails with status code 401 if token is invalid", async () => {
+    const userFromLogin = JSON.parse(loginResponse);
+    const userToken = userFromLogin.token;
+
+    const newBlog = {
+      title: "Canonical string reduction",
+      author: "Edsger W. Dijkstra",
+      url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
+      likes: 12,
+    };
+
+    await api
+      .post("/api/blogs")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send(newBlog)
+      .expect(201)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsAfterAddition = await helper.blogsInDb();
+    assert.strictEqual(blogsAfterAddition.length, 1);
+
+    const blogToDelete = blogsAfterAddition[0];
+
+    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(401);
+    const blogsAtEnd = await helper.blogsInDb();
+
+    assert.strictEqual(blogsAtEnd.length, 1);
   });
 });
 
@@ -214,60 +337,6 @@ describe("Edition of a blog", () => {
     assert(likes.includes(100));
 
     assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
-  });
-});
-
-describe("when there is initially one user in db", () => {
-  beforeEach(async () => {
-    await User.deleteMany({});
-
-    const passwordHash = await bcrypt.hash("sekret", 10);
-    const user = new User({ username: "root", passwordHash });
-
-    await user.save();
-  });
-
-  test("creation succeeds with a fresh username", async () => {
-    const usersAtStart = await helper.usersInDb();
-
-    const newUser = {
-      username: "mluukkai",
-      name: "Matti Luukkainen",
-      password: "salainen",
-    };
-
-    await api
-      .post("/api/users")
-      .send(newUser)
-      .expect(201)
-      .expect("Content-Type", /application\/json/);
-
-    const usersAtEnd = await helper.usersInDb();
-    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1);
-
-    const usernames = usersAtEnd.map((u) => u.username);
-    assert(usernames.includes(newUser.username));
-  });
-
-  test("creation fails with proper statuscode and message if username already taken", async () => {
-    const usersAtStart = await helper.usersInDb();
-
-    const newUser = {
-      username: "root",
-      name: "Superuser",
-      password: "salainen",
-    };
-
-    const result = await api
-      .post("/api/users")
-      .send(newUser)
-      .expect(400)
-      .expect("Content-Type", /application\/json/);
-
-    const usersAtEnd = await helper.usersInDb();
-    assert(result.body.error.includes("expected `username` to be unique"));
-
-    assert.strictEqual(usersAtEnd.length, usersAtStart.length);
   });
 });
 

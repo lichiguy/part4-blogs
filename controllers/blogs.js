@@ -23,9 +23,9 @@ blogsRouter.post("/", async (request, response) => {
   if (!decodedToken.id) {
     return response.status(401).json({ error: "invalid token" });
   }
-  console.log(request.user) //ya son iguales, hay que modificar la siguiente linea y sus similares
-  const user = await User.findById(decodedToken.id);
-  console.log(user) //ya son iguales
+  //const user = await User.findById(decodedToken.id);
+  
+  const user = request.user
 
   const blog = new Blog({
     title: body.title,
@@ -47,7 +47,9 @@ blogsRouter.delete("/:id", async (request, response) => {
   if (!decodedToken.id) {
     return response.status(401).json({ error: "invalid token" });
   }
-  const userRequestingDelete = await User.findById(decodedToken.id);
+ // const userRequestingDelete = await User.findById(decodedToken.id);
+  
+  const userRequestingDelete = request.user
   const blogToDelete = await Blog.findById(request.params.id);
 
   if (!blogToDelete) {
